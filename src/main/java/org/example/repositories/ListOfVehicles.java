@@ -47,29 +47,45 @@ public class ListOfVehicles implements IVehicleRepository {
     }
 
     @Override
-    public void rentVehicle(int vehicleId) {
+    public boolean rentVehicle(int vehicleId) { // true -> success
+        boolean success = false;
         for (Vehicle vehicle : this.list)
         {
             if (vehicle.getVehicleId() == vehicleId) {
-                if (!vehicle.isRented()) vehicle.setRented(true);
-                else System.out.println("!!!This vehicle is already rented!!!");
+                if (!vehicle.isRented()) {
+                    vehicle.setRented(true);
+                    success = true;
+                }
+                else {
+                    System.out.println("!!!This vehicle is already rented!!!");
+                    success = false;
+                }
                 this.save();
                 break;
             }
         }
+        return success;
     }
 
     @Override
-    public void returnVehicle(int vehicleId) {
+    public boolean returnVehicle(int vehicleId) {
+        boolean success = false;
         for (Vehicle vehicle : this.list)
         {
             if (vehicle.getVehicleId() == vehicleId) {
-                if (vehicle.isRented()) vehicle.setRented(false);
-                else System.out.println("!!!This vehicle was not rented!!!");
+                if (vehicle.isRented()) {
+                    vehicle.setRented(false);
+                    success = true;
+                }
+                else {
+                    System.out.println("!!!This vehicle was not rented!!!");
+                    success = false;
+                }
                 this.save();
                 break;
             }
         }
+        return success;
     }
 
     @Override
@@ -122,6 +138,49 @@ public class ListOfVehicles implements IVehicleRepository {
     }
 
     @Override
+    public boolean addVehicle(Vehicle vehicle) {    // false = didnt succeed
+        boolean isDouble = false;
+
+        for (Vehicle vehicleCheck : this.list) {
+            if (vehicleCheck.equals(vehicle)) {
+                isDouble = true;
+                break;
+            }
+        }
+
+        if (!isDouble) {
+            list.add(vehicle);
+        }
+
+        return !isDouble;
+    }
+
+    @Override
+    public boolean removeVehicle(int vehicleId) {   // false = didnt succeed
+        boolean found = false;
+        for (Vehicle vehicleCheck : this.list) {
+            if (vehicleCheck.getVehicleId() == vehicleId) {
+                found = true;
+                list.remove(vehicleCheck);
+                break;
+            }
+        }
+        this.save();
+        return found;
+    }
+
+    @Override
+    public Vehicle getVehicle(int vehicleId) {
+        for (Vehicle vehicle : this.list) {
+            if (vehicle.getVehicleId() == vehicleId) {
+                return vehicle;
+            }
+        }
+        System.out.println("getVehicle() didn't find a vehicle with specified id, returned the first vehicle from list");
+        return this.list.get(0);    // no clue what should i return in this case
+    }
+
+    @Override
     public String toString() {
         StringBuilder toReturn = new StringBuilder("ListOfVehicles{\n");
 
@@ -132,41 +191,6 @@ public class ListOfVehicles implements IVehicleRepository {
         toReturn.append("}\n");
 
         return toReturn.toString();
-    }
-
-
-    // for the time being (i need this for testing)
-    public int getHash(int number_on_list){//int vehicleId) {
-//        // this can be changed for simply returning a number off of the list if needed
-//        // (for now it looks for the vehicle id so if there are 2 entries with the same id, it will only see the first one)
-//        int result = -1;
-//        for (Vehicle vehicle : this.list)
-//        {
-//            if (vehicle.vehicleId == vehicleId) {
-//                result = vehicle.hashCode();
-//                break;
-//            }
-//        }
-//        return result;
-
-        // the other implementation
-        return list.get(number_on_list).hashCode();
-    }
-    public Vehicle getVehicle(int number_on_list){//int vehicleId) {
-//        // this can be changed for simply returning a number off of the list if needed
-//        // (for now it looks for the vehicle id so if there are 2 entries with the same id, it will only see the first one)
-//        int result = -1;
-//        for (Vehicle vehicle : this.list)
-//        {
-//            if (vehicle.vehicleId == vehicleId) {
-//                result = vehicle.hashCode();
-//                break;
-//            }
-//        }
-//        return result;
-
-        // the other implementation
-        return list.get(number_on_list);
     }
 
 }

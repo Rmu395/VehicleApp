@@ -1,178 +1,210 @@
 package org.example.app;
 
-import org.apache.commons.codec.digest.DigestUtils;
-import org.example.accounts.User;
-import org.example.model.Car;
-import org.example.model.Motorcycle;
-import org.example.model.Vehicle;
-import org.example.repositories.IUserRepository;
-import org.example.repositories.IVehicleRepository;
-import org.example.repositories.ListOfVehicles;
+import org.example.models.Rental;
+import org.example.models.User;
+import org.example.models.Vehicle;
+import org.example.repositories.RentalRepository;
 import org.example.repositories.UserRepository;
+import org.example.repositories.VehicleRepository;
+import org.example.repositories.impl.RentalJsonRepository;
+import org.example.repositories.impl.UserJsonRepository;
+import org.example.repositories.impl.VehicleJsonRepository;
+import org.example.services.AuthService;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
-        IVehicleRepository repository = new ListOfVehicles();
-        repository.save();
-
-        IUserRepository userRepository = new UserRepository();
-        // the default logins are:
-        // (user) login: karol, password: 123
-        // (admin) login: marcin, password: qwerty
-        userRepository.save();
+        VehicleRepository vehicleRepository = new VehicleJsonRepository();
+        UserRepository userRepository = new UserJsonRepository();
+        RentalRepository rentalRepository = new RentalJsonRepository();
 
         Scanner scanner = new Scanner(System.in);
         int option = 0;
-        User user = null;
+        Optional<User> user = Optional.empty();
         boolean loop = true;
         boolean loggedIn = false;
-        boolean isAdmin = false;
+        String role = "None";
 
         while (loop) {
             if (loggedIn) {
                 switch (option) {
                     case 0: // common loop, we choose what option to get
-                        if (isAdmin) {  // should the not logged in people be able to rent???
-                            System.out.println("""
-                            \n= You are an admin =
-                            Options:
-                            1. Info
-                            2. Renting a vehicle
-                            3. Returning a vehicle
-                            4. Adding a vehicle
-                            5. Removing a vehicle
-                            6. List of vehicles
-                            7. List of users
-                            
-                            9. Exit
-                            """);
-                        }
-                        else {
-                            System.out.println("""
-                            \nOptions:
-                            1. Info
-                            2. Renting a vehicle
-                            3. Returning a vehicle
-                            
-                            9. Exit
-                            """);
+                        switch (role) {
+                            case "USER":
+                                System.out.println("""
+                                \nOptions:
+                                1. Info
+                                2. Renting a vehicle
+                                3. Returning a vehicle
+                                4. List of available vehicles
+                                
+                                9. Exit
+                                """);
+                                break;
+
+                            case "ADMIN":
+                                System.out.println("""
+                                \n= You are an admin =
+                                Options:
+                                1. Info
+                                2. Renting a vehicle
+                                3. Returning a vehicle
+                                4. Adding a vehicle
+                                5. Removing a vehicle
+                                6. List of vehicles
+                                7. List of users
+                                
+                                9. Exit
+                                """);
+                                break;
+
+                            default:
+                                System.out.println("A role with value: " + role + " is not handled");
+                                loggedIn = false;
+                                break;
                         }
                         option = scanner.nextInt();
                         break;
+
                     case 1: // info about user
-                        System.out.println("Login: " + user.getLogin() +
-                                "\nPassword (hashed): " + user.getPassword() +
-                                "\nRole: " + user.getRole() +
-                                "\nVehicle rented: " + user.getRentedCar());
+                        System.out.println("Login: " + user.get().getLogin() +
+                                "\nPassword (hashed): " + user.get().getPassword() +
+                                "\nRole: " + user.get().getRole() +
+                                "\nUser Id: " + user.get().getId());
+                        System.out.println("Rented vehicles: ");
+                        for (Vehicle v : vehicleRepository.findAll()) {
+                            boolean rented = false;
+                            for (Rental r : rentalRepository.findAll()) {
+                                if (r.getUserId().equals(user.get().getId()) &&
+                                        r.getVehicleId().equals(v.getId()) &&
+                                        r.getReturnDate().isEmpty()) {
+                                    rented = true;
+                                    break;
+                                }
+                            }
+                            if (rented) {
+                                System.out.println(v);
+                            }
+                        }
                         option = 0;
                         break;
+
                     case 2: // renting a vehicle
-                        if (user.getRentedCar() == -1){
-                            System.out.println("Id of the vehicle: ");
-                            int toRentVehicleId = scanner.nextInt();
-                            if (repository.rentVehicle(toRentVehicleId)) {
-                                user.setRentedCar(toRentVehicleId);
-                                userRepository.save();
+                        System.out.println("Id of the vehicle: ");
+                        String toRentVehicleId = scanner.next();
+
+                        for (Vehicle v : vehicleRepository.findAll()) {
+                            boolean rented = false;
+                            for (Rental r : rentalRepository.findAll()) {
+                                if (r.getVehicleId().equals(toRentVehicleId) &&
+                                        r.getVehicleId().equals(v.getId()) &&
+                                        r.getReturnDate().isEmpty()) {
+                                    rented = true;
+                                    break;
+                                }
+                            }
+                            if (v.getId().equals(toRentVehicleId) && !rented) {
+                                Rental rental = Rental.builder()
+                                        .vehicleId(v.getId())
+                                        .userId(user.get().getId())
+                                        .rentDate(LocalDateTime.now().toString())
+                                        .returnDate("")
+                                        .build();
+                                rentalRepository.save(rental);
                             }
                         }
-                        else {
-                            System.out.println("You are already renting a car!" +
-                                    "\nYou have to return it before renting another one");
-                        }
-
                         option = 0;
                         break;
+
                     case 3: // returning a vehicle
-                        if (user.getRentedCar() == -1) {
-                            System.out.println("You are not renting a car!" +
-                                    "\nYou have to rent one to return it");
+                        System.out.println("Id of the returning vehicle: ");
+                        String toReturnVehicleId = scanner.next();
+                        boolean found = false;
+
+                        for (Rental r : rentalRepository.findAll()) {
+                            if (r.getVehicleId().equals(toReturnVehicleId) &&
+                                    r.getUserId().equals(user.get().getId()) &&
+                                    r.getReturnDate().isEmpty()) {
+                                found = true;
+                                r.setReturnDate(LocalDateTime.now().toString());
+                            }
+                        }
+
+                        if (found) {
+                            System.out.println("Vehicle has been returned");
                         }
                         else {
-                            System.out.println("Id of the vehicle: ");
-                            int toReturnVehicleId = scanner.nextInt();
-                            if (repository.returnVehicle(toReturnVehicleId)) {
-                                user.setRentedCar(-1);
-                                userRepository.save();
-                            }
+                            System.out.println("The returning process was unsuccessful");
                         }
 
                         option = 0;
                         break;
 
-                    // admin options
                     case 4: // adding a vehicle
-                        if (isAdmin) {
-                            System.out.println("Select a type of vehicle (C - car or M - motorcycle): ");
-                            String vehicleAddType = scanner.next();
+                        if (role.equals("ADMIN")) {
 
-                            if (Objects.equals(vehicleAddType, "C")) {
-                                System.out.println("Brand: ");
-                                String vehicleAddBrand = scanner.next();
-                                System.out.println("Model: ");
-                                String vehicleAddModel = scanner.next();
-                                System.out.println("Year: ");
-                                int vehicleAddYear = scanner.nextInt();
-                                System.out.println("Price: ");
-                                float vehicleAddPrice = scanner.nextFloat();
-                                boolean vehicleAddRented = false;
-                                System.out.println("Vehicle Id: ");
-                                int vehicleAddId = scanner.nextInt();
+                            System.out.println("Category: ");
+                            String vehicleAddCategory = scanner.next();
+                            System.out.println("Brand: ");
+                            String vehicleAddBrand = scanner.next();
+                            System.out.println("Model: ");
+                            String vehicleAddModel = scanner.next();
+                            System.out.println("Year: ");
+                            int vehicleAddYear = scanner.nextInt();
+                            System.out.println("Plate: ");
+                            String vehicleAddPlate = scanner.next();
 
-                                if (repository.addVehicle(new Car(
-                                        vehicleAddBrand,
-                                        vehicleAddModel,
-                                        vehicleAddYear,
-                                        vehicleAddPrice,
-                                        vehicleAddRented,
-                                        vehicleAddId
-                                ))) {
-                                    System.out.println("Vehicle successfully added");
+                            Vehicle vehicle = Vehicle.builder()
+                                    .category(vehicleAddCategory)
+                                    .brand(vehicleAddBrand)
+                                    .model(vehicleAddModel)
+                                    .year(vehicleAddYear)
+                                    .plate(vehicleAddPlate)
+                                    .build();
+
+                            System.out.println("Number of additional attributes: ");
+                            int numberOfAttributes = scanner.nextInt();
+
+                            for (int i = 0; i < numberOfAttributes; i++) {
+                                System.out.println("Specify attributes key: ");
+                                String attributesKey = scanner.next();
+                                System.out.println("Specify attributes value: ");
+                                Object attributesValue = scanner.next();
+                                vehicle.addAttribute(attributesKey, attributesValue);
+                            }
+
+                            vehicleRepository.save(vehicle);
+                        }
+                        else {  // list of available vehicles
+                            for (Vehicle v : vehicleRepository.findAll()) {
+                                // there HAS TO BE a better way of finding it but i cant think of it
+                                // also a good idea would be doing this at the start (in like a constructor or something in UserRepository)
+                                // (in user so that we know who rented what)
+                                boolean notRented = true;
+                                for (Rental r : rentalRepository.findAll()) {
+                                    if (r.getVehicleId().equals(v.getId()) && r.getReturnDate().isEmpty()) {
+                                        notRented = false;
+                                        break;
+                                    }
                                 }
-                                else {
-                                    System.out.println("Vehicle addition was unsuccessful");
-                                }
-
-                            } else if (Objects.equals(vehicleAddType, "M")) {
-                                System.out.println("Brand: ");
-                                String vehicleAddBrand = scanner.next();
-                                System.out.println("Model: ");
-                                String vehicleAddModel = scanner.next();
-                                System.out.println("Year: ");
-                                int vehicleAddYear = scanner.nextInt();
-                                System.out.println("Price: ");
-                                float vehicleAddPrice = scanner.nextFloat();
-                                boolean vehicleAddRented = false;
-                                System.out.println("Vehicle Id: ");
-                                int vehicleAddId = scanner.nextInt();
-                                System.out.println("Category: ");
-                                String vehicleAddCategory = scanner.next();
-
-                                if (repository.addVehicle(new Motorcycle(
-                                        vehicleAddBrand,
-                                        vehicleAddModel,
-                                        vehicleAddYear,
-                                        vehicleAddPrice,
-                                        vehicleAddRented,
-                                        vehicleAddId,
-                                        vehicleAddCategory
-                                ))) {
-                                    System.out.println("Vehicle successfully added");
-                                }
-                                else {
-                                    System.out.println("Vehicle addition was unsuccessful");
+                                if (notRented) {
+                                    System.out.println(v);
                                 }
                             }
                         }
                         option = 0;
                         break;
+
                     case 5: // removing a vehicle
-                        if (isAdmin) {
+                        if (role.equals("ADMIN")) {
                             System.out.println("Id of the vehicle: ");
-                            int toRemoveVehicleId = scanner.nextInt();
-                            if (repository.removeVehicle(toRemoveVehicleId)) {
+                            String toRemoveVehicleId = scanner.next();
+                            if (vehicleRepository.findById(toRemoveVehicleId).isPresent()) {
+                                vehicleRepository.deleteById(toRemoveVehicleId);
                                 System.out.println("Vehicle successfully removed");
                             }
                             else {
@@ -181,17 +213,19 @@ public class Main {
                         }
                         option = 0;
                         break;
+
                     case 6: // list of vehicles
-                        if (isAdmin) {
-                            for (Vehicle listVehicle : repository.getVehicles()) {
+                        if (role.equals("ADMIN")) {
+                            for (Vehicle listVehicle : vehicleRepository.findAll()) {
                                 System.out.println(listVehicle.toString());
                             }
                         }
                         option = 0;
                         break;
+
                     case 7: // list of users
-                        if (isAdmin) {
-                            for (User listUser : userRepository.getUsers()) {
+                        if (role.equals("ADMIN")) {
+                            for (User listUser : userRepository.findAll()) {
                                 System.out.println(listUser.toString());
                             }
                         }
@@ -203,23 +237,61 @@ public class Main {
                         break;
 
                     default:
-                        System.out.println("THIS IS NOT HANDLED IN THE SWITCH STATEMENT!!!");
+                        System.out.println("Incorrect option");
                         option = 0;
                 }
             }
             else {
-                System.out.println("Login: ");
-                String login = scanner.next();
-                System.out.println("Password: ");
-                String password = scanner.next();
-                // get the user if login returns true
-                if (Authentication.loggingIn(userRepository, login, password)) {
-                    user = userRepository.getUser(login);
-                    loggedIn = true;
-                    if (user.getRole().equals("admin")) isAdmin = true;
+                switch (option) {
+                    case 0:
+                        System.out.println("Options:" +
+                                "\n1. Login" +
+                                "\n2. Register" +
+                                "\n\n9. Quit");
+                        option = scanner.nextInt();
+                        break;
+
+                    case 1:
+                        System.out.println("Login: ");
+                        String login = scanner.next();
+                        System.out.println("Password: ");
+                        String password = scanner.next();
+
+                        user = AuthService.login(userRepository, login, password);
+                        if (user.isPresent()) {
+                            role = user.get().getRole();
+                            loggedIn = true;
+                        } else {
+                            System.out.println("Wrong login / password");
+                        }
+                        option = 0;
+                        break;
+
+                    case 2:
+                        System.out.println("New login: ");
+                        String regLogin = scanner.next();
+                        System.out.println("New password: ");
+                        String regPassword = scanner.next();
+
+                        user = AuthService.register(userRepository, regLogin, regPassword);
+                        if (user.isPresent()) {
+                            role = user.get().getRole();
+                            loggedIn = true;
+                        } else {
+                            System.out.println("Either account with that login already exits or there has been a problem during the registration");
+                        }
+                        option = 0;
+                        break;
+
+                    case 9:
+                        loop = false;
+                        break;
+
+                    default:
+                        System.out.println("Incorrect option");
+                        option = 0;
                 }
             }
-
         }
         scanner.close();
     }

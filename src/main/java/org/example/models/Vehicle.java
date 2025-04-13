@@ -1,6 +1,8 @@
 package org.example.models;
 
 import lombok.*;
+
+import java.util.HashMap;
 import java.util.Map;
 @Data
 @NoArgsConstructor
@@ -13,9 +15,9 @@ public class Vehicle {
     private String model;
     private int year;
     private String plate;
+    private double price;
     @Builder.Default
-    private Map<String, Object> attributes =
-            Map.of();
+    private Map<String, Object> attributes = new HashMap<>();
     public Object getAttribute(String key) {
         return attributes.get(key);
     }

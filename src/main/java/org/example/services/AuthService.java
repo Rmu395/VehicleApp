@@ -5,29 +5,55 @@ import org.example.repositories.UserRepository;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.Optional;
-
 public class AuthService {
-    public static Optional<User> login(UserRepository userRepository, String login, String password) {
-        Optional<User> user = userRepository.findByLogin(login);
-        if (user.isPresent()) {
-            if (BCrypt.checkpw(password, user.get().getPassword())) {
-                return user;
-            }
-        }
-        return Optional.empty();
+
+    private final UserRepository userRepo;
+
+    public AuthService(UserRepository userRepo) {
+        this.userRepo = userRepo;
     }
 
-    public static Optional<User> register(UserRepository userRepository, String login, String password) {
-        if (userRepository.findByLogin(login).isEmpty()) {
-            User user = User.builder()
-                    .login(login)
-                    .password(BCrypt.hashpw(password, BCrypt.gensalt()))
-                    .role("USER")
-                    .build();   // userId is handled in userRepository.save() (in case we dont handle it here so im gonna use that one)
-                                // the role is "USER" - it wouldnt make much sense if we allowed people to create admin accounts
-            userRepository.save(user);
-            return Optional.ofNullable(user);
+    public boolean register(String login, String rawPassword, String role) {
+        if (userRepo.findByLogin(login).isPresent()) {
+            System.out.println("User with that login already exists");
+            return false;
         }
-        return Optional.empty();
+
+        String hashed = BCrypt.hashpw(rawPassword, BCrypt.gensalt());
+
+        User user = User.builder()
+                .login(login)
+                .password(hashed)
+                .role(role)
+                .build();
+
+        userRepo.save(user);
+        System.out.println("Successfully registered");
+        return true;
+    }
+
+    public Optional<User> login(String login, String rawPassword) {
+        return userRepo.findByLogin(login)
+                .filter(user -> BCrypt.checkpw(rawPassword, user.getPassword()));
+    }
+
+    public void showUserInfo(String userId) {
+        Optional<User> user = userRepo.findById(userId);
+
+        if (user.isPresent()) {
+            System.out.println("Login: " + user.get().getLogin() +
+                    "\nPassword (hashed): " + user.get().getPassword() +
+                    "\nRole: " + user.get().getRole() +
+                    "\nUser Id: " + user.get().getId());
+        }
+        else {
+            System.out.println("There was a problem with getting user");
+        }
+    }
+
+    public void showAllUsers() {
+        for (User u : userRepo.findAll()) {
+            System.out.println(u.toString());
+        }
     }
 }

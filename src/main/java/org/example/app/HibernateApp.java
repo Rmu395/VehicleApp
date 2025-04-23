@@ -2,24 +2,25 @@ package org.example.app;
 
 import org.example.models.User;
 import org.example.models.Vehicle;
-import org.example.services.SimpleAuthService;
-import org.example.services.SimpleRentalService;
-import org.example.services.SimpleVehicleService;
+import org.example.services.hibernate.AuthHibernateService;
+import org.example.services.hibernate.RentalHibernateService;
+import org.example.services.hibernate.VehicleHibernateService;
 
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.UUID;
 
-public class App {
+public class HibernateApp {
 
-    private final SimpleAuthService simpleAuthService;
-    private final SimpleVehicleService simpleVehicleService;
-    private final SimpleRentalService simpleRentalService;
+    private final AuthHibernateService authHibernateService;
+    private final VehicleHibernateService vehicleHibernateService;
+    private final RentalHibernateService rentalHibernateService;
     private final Scanner scanner = new Scanner(System.in);
 
-    public App(SimpleAuthService simpleAuthService, SimpleVehicleService simpleVehicleService, SimpleRentalService simpleRentalService) {
-        this.simpleAuthService = simpleAuthService;
-        this.simpleVehicleService = simpleVehicleService;
-        this.simpleRentalService = simpleRentalService;
+    public HibernateApp(AuthHibernateService authHibernateService, VehicleHibernateService vehicleHibernateService, RentalHibernateService rentalHibernateService) {
+        this.authHibernateService = authHibernateService;
+        this.vehicleHibernateService = vehicleHibernateService;
+        this.rentalHibernateService = rentalHibernateService;
     }
 
     public void run() {
@@ -54,13 +55,13 @@ public class App {
                                 2. Renting a vehicle
                                 3. Returning a vehicle
                                 4. Adding a vehicle
-                                5. Removing a vehicle
+                                
                                 6. List of vehicles
-                                7. List of users
+                                
                                 
                                 9. Exit
                                 """);
-                                break;
+                                break;  //5. Removing a vehicle //7. List of users
 
                             default:
                                 System.out.println("A role with value: " + role + " is not handled");
@@ -71,11 +72,10 @@ public class App {
                         break;
 
                     case 1: // info about user
-                        String userId = user.get().getId();
-
-                        simpleAuthService.showUserInfo(userId);
-                        System.out.println("Rented vehicle: ");
-                        simpleRentalService.showUserRentedCar(userId);
+                        System.out.println("Login: " + user.get().getLogin() +
+                                "\nPassword (hashed): " + user.get().getPassword() +
+                                "\nRole: " + user.get().getRole() +
+                                "\nUser Id: " + user.get().getId());
 
                         option = 0;
                         break;
@@ -84,7 +84,7 @@ public class App {
                         System.out.println("Id of the vehicle: ");
                         String toRentVehicleId = scanner.next();
 
-                        simpleRentalService.rentVehicleByVehicleId(toRentVehicleId, user.get().getId());
+                        rentalHibernateService.rent(toRentVehicleId, user.get().getId());
 
                         option = 0;
                         break;
@@ -93,7 +93,7 @@ public class App {
                         System.out.println("Id of the returning vehicle: ");
                         String toReturnVehicleId = scanner.next();
 
-                        simpleRentalService.returnVehicleByVehicleId(toReturnVehicleId, user.get().getId());
+                        rentalHibernateService.returnRental(toReturnVehicleId, user.get().getId());
 
                         option = 0;
                         break;
@@ -115,6 +115,7 @@ public class App {
                             double vehicleAddPrice = scanner.nextDouble();
 
                             Vehicle vehicle = Vehicle.builder()
+                                    .id(UUID.randomUUID().toString())
                                     .category(vehicleAddCategory)
                                     .brand(vehicleAddBrand)
                                     .model(vehicleAddModel)
@@ -134,37 +135,41 @@ public class App {
                                 vehicle.addAttribute(attributesKey, attributesValue);
                             }
 
-                            simpleVehicleService.addVehicle(vehicle);
+                            vehicleHibernateService.save(vehicle);
                         }
                         else {  // list of available vehicles
-                            simpleVehicleService.showAvailableVehicles();
+                            for (Vehicle v : vehicleHibernateService.findAvailableVehicles()) {
+                                System.out.println(v);
+                            }
                         }
                         option = 0;
                         break;
 
-                    case 5: // removing a vehicle
-                        if (role.equals("ADMIN")) {
-                            System.out.println("Id of the vehicle: ");
-                            String toRemoveVehicleId = scanner.next();
-
-                            simpleVehicleService.removeVehicle(toRemoveVehicleId);
-                        }
-                        option = 0;
-                        break;
+//                    case 5: // removing a vehicle
+//                        if (role.equals("ADMIN")) {
+//                            System.out.println("Id of the vehicle: ");
+//                            String toRemoveVehicleId = scanner.next();
+//
+//                            vehicleHibernateService.
+//                        }
+//                        option = 0;
+//                        break;
 
                     case 6: // list of vehicles
                         if (role.equals("ADMIN")) {
-                            simpleVehicleService.showAllVehicles();
+                            for (Vehicle v : vehicleHibernateService.findAll()) {
+                                System.out.println(v);
+                            }
                         }
                         option = 0;
                         break;
 
-                    case 7: // list of users
-                        if (role.equals("ADMIN")) {
-                            simpleAuthService.showAllUsers();
-                        }
-                        option = 0;
-                        break;
+//                    case 7: // list of users
+//                        if (role.equals("ADMIN")) {
+//                            authHibernateService.showAllUsers();
+//                        }
+//                        option = 0;
+//                        break;
 
                     case 9: // exiting
                         loop = false;
@@ -191,7 +196,7 @@ public class App {
                         System.out.println("Password: ");
                         String password = scanner.next();
 
-                        user = simpleAuthService.login(login, password);
+                        user = authHibernateService.login(login, password);
                         if (user.isPresent()) {
                             System.out.println("Successfully logged in");
                             role = user.get().getRole();
@@ -210,7 +215,7 @@ public class App {
                         System.out.println("New role: ");
                         String regRole = scanner.next();
 
-                        if (!simpleAuthService.register(regLogin, regPassword, regRole)) {
+                        if (!authHibernateService.register(regLogin, regPassword, regRole)) {
                             System.out.println("There has been a problem during the registration");
                         }
                         option = 0;

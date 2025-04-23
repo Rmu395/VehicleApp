@@ -5,11 +5,11 @@ import org.example.repositories.UserRepository;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.Optional;
-public class AuthService {
+public class SimpleAuthService {
 
     private final UserRepository userRepo;
 
-    public AuthService(UserRepository userRepo) {
+    public SimpleAuthService(UserRepository userRepo) {
         this.userRepo = userRepo;
     }
 

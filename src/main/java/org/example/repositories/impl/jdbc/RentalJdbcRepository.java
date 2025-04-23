@@ -2,7 +2,8 @@ package org.example.repositories.impl.jdbc;
 
 import com.google.gson.Gson;
 import org.example.db.JdbcConnectionManager;
-import org.example.models.Rental;
+import org.example.models.dbRental;
+import org.example.repositories.DbRentalRepository;
 import org.example.repositories.RentalRepository;
 
 import java.sql.Connection;
@@ -11,20 +12,20 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
-public class RentalJdbcRepository implements RentalRepository {
+public class RentalJdbcRepository implements DbRentalRepository {
 
     private final Gson gson = new Gson();
 
     @Override
-    public List<Rental> findAll() {
-        List<Rental> list = new ArrayList<>();
+    public List<dbRental> findAll() {
+        List<dbRental> list = new ArrayList<>();
         String sql = "SELECT * FROM rental";
         try (Connection connection = JdbcConnectionManager.getInstance().getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                Rental rental = Rental.builder()
+                dbRental rental = dbRental.builder()
                         .id(rs.getString("id"))
                         .vehicleId(rs.getString("vehicle_id"))
                         .userId(rs.getString("user_id"))
@@ -40,7 +41,7 @@ public class RentalJdbcRepository implements RentalRepository {
     }
 
     @Override
-    public Optional<Rental> findById(String id) {
+    public Optional<dbRental> findById(String id) {
         String sql = "SELECT * FROM rental WHERE id = ?";
         try (Connection connection = JdbcConnectionManager.getInstance().getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -48,7 +49,7 @@ public class RentalJdbcRepository implements RentalRepository {
             stmt.setString(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    Rental rental = Rental.builder()
+                    dbRental rental = dbRental.builder()
                             .id(rs.getString("id"))
                             .vehicleId(rs.getString("vehicle_id"))
                             .userId(rs.getString("user_id"))
@@ -66,7 +67,7 @@ public class RentalJdbcRepository implements RentalRepository {
     }
 
     @Override
-    public Optional<Rental> findByVehicleId(String vehicleId) {
+    public Optional<dbRental> findByVehicleId(String vehicleId) {
         String sql = "SELECT * FROM rental WHERE vehicle_id = ?";
         try (Connection connection = JdbcConnectionManager.getInstance().getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -74,7 +75,7 @@ public class RentalJdbcRepository implements RentalRepository {
             stmt.setString(1, vehicleId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    Rental rental = Rental.builder()
+                    dbRental rental = dbRental.builder()
                             .id(rs.getString("id"))
                             .vehicleId(rs.getString("vehicle_id"))
                             .userId(rs.getString("user_id"))
@@ -92,7 +93,7 @@ public class RentalJdbcRepository implements RentalRepository {
     }
 
     @Override
-    public Optional<Rental> findByUserId(String userId) {
+    public Optional<dbRental> findByUserId(String userId) {
 
         String sql = "SELECT * FROM rental WHERE user_id = ?";
         try (Connection connection = JdbcConnectionManager.getInstance().getConnection();
@@ -101,7 +102,7 @@ public class RentalJdbcRepository implements RentalRepository {
             stmt.setString(1, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    Rental rental = Rental.builder()
+                    dbRental rental = dbRental.builder()
                             .id(rs.getString("id"))
                             .vehicleId(rs.getString("vehicle_id"))
                             .userId(rs.getString("user_id"))
@@ -119,7 +120,7 @@ public class RentalJdbcRepository implements RentalRepository {
     }
 
     @Override
-    public Rental save(Rental rental) {
+    public dbRental save(dbRental rental) {
         if (rental.getId() == null || rental.getId().isBlank()) {
             rental.setId(UUID.randomUUID().toString());
         } else {
@@ -157,7 +158,7 @@ public class RentalJdbcRepository implements RentalRepository {
     }
 
     @Override
-    public Optional<Rental> findByVehicleIdAndReturnDateIsNull(String vehicleId) {
+    public Optional<dbRental> findByVehicleIdAndReturnDateIsNull(String vehicleId) {
         String sql = "SELECT * FROM rental WHERE vehicle_id = ? AND return_date = '' LIMIT 1";
         try (Connection connection = JdbcConnectionManager.getInstance().getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -165,7 +166,7 @@ public class RentalJdbcRepository implements RentalRepository {
             stmt.setString(1, vehicleId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    Rental rental = Rental.builder()
+                    dbRental rental = dbRental.builder()
                             .id(rs.getString("id"))
                             .vehicleId(rs.getString("vehicle_id"))
                             .userId(rs.getString("user_id"))
@@ -183,7 +184,7 @@ public class RentalJdbcRepository implements RentalRepository {
     }
 
     @Override
-    public Optional<Rental> findByUserIdAndReturnDateIsNull(String userId) {
+    public Optional<dbRental> findByUserIdAndReturnDateIsNull(String userId) {
         String sql = "SELECT * FROM rental WHERE user_id = ? AND return_date = '' LIMIT 1";
         try (Connection connection = JdbcConnectionManager.getInstance().getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -191,7 +192,7 @@ public class RentalJdbcRepository implements RentalRepository {
             stmt.setString(1, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    Rental rental = Rental.builder()
+                    dbRental rental = dbRental.builder()
                             .id(rs.getString("id"))
                             .vehicleId(rs.getString("vehicle_id"))
                             .userId(rs.getString("user_id"))

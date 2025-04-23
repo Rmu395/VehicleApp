@@ -1,23 +1,21 @@
 package org.example.services;
 
-import org.example.models.Rental;
-import org.example.models.Vehicle;
-import org.example.repositories.RentalRepository;
-import org.example.repositories.UserRepository;
+import org.example.models.dbRental;
+import org.example.repositories.DbRentalRepository;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-public class RentalService {
+public class SimpleRentalService {
 
-    private final RentalRepository rentalRepo;
+    private final DbRentalRepository rentalRepo;
 
-    public RentalService(RentalRepository rentalRepo) {
+    public SimpleRentalService(DbRentalRepository rentalRepo) {
         this.rentalRepo = rentalRepo;
     }
 
     public void showUserRentedCar(String userId) {
-        Optional<Rental> rental =  rentalRepo.findByUserIdAndReturnDateIsNull(userId);
+        Optional<dbRental> rental =  rentalRepo.findByUserIdAndReturnDateIsNull(userId);
         if (rental.isPresent()) {
             System.out.println(rental);
         }
@@ -29,7 +27,7 @@ public class RentalService {
     public void rentVehicleByVehicleId(String vehicleId, String userId) {
         if (rentalRepo.findByUserIdAndReturnDateIsNull(userId).isEmpty()) {
             if (rentalRepo.findByVehicleIdAndReturnDateIsNull(vehicleId).isEmpty()) {
-                Rental rental = Rental.builder()
+                dbRental rental = dbRental.builder()
                         .vehicleId(vehicleId)
                         .userId(userId)
                         .rentDate(LocalDateTime.now().toString())
@@ -49,7 +47,7 @@ public class RentalService {
 
     public void returnVehicleByVehicleId(String vehicleId, String userId) {
 
-        Optional<Rental> returningRental = rentalRepo.findByVehicleIdAndReturnDateIsNull(vehicleId);
+        Optional<dbRental> returningRental = rentalRepo.findByVehicleIdAndReturnDateIsNull(vehicleId);
 
         if (returningRental.isPresent()) {
             if (returningRental.get().getUserId().equals(userId)) {

@@ -2,6 +2,8 @@ package org.example.repositories.impl.json;
 
 import com.google.gson.reflect.TypeToken;
 import org.example.models.Rental;
+import org.example.models.dbRental;
+import org.example.repositories.DbRentalRepository;
 import org.example.repositories.RentalRepository;
 import org.example.utils.JsonFileStorage;
 
@@ -10,36 +12,36 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class RentalJsonRepository implements RentalRepository {
-    private final JsonFileStorage<Rental> storage = new JsonFileStorage<>("rentals.json", new TypeToken<List<Rental>>(){}.getType());
-    private final List<Rental> rentals;
+public class RentalJsonRepository implements DbRentalRepository {
+    private final JsonFileStorage<dbRental> storage = new JsonFileStorage<>("rentals.json", new TypeToken<List<dbRental>>(){}.getType());
+    private final List<dbRental> rentals;
 
     public RentalJsonRepository() {
         this.rentals = new ArrayList<>(storage.load());
     }
 
     @Override
-    public List<Rental> findAll() {
+    public List<dbRental> findAll() {
         return new ArrayList<>(rentals);
     }
 
     @Override
-    public Optional<Rental> findById(String id) {
+    public Optional<dbRental> findById(String id) {
         return rentals.stream().filter(r -> r.getId().equals(id)).findFirst();
     }
 
     @Override
-    public Optional<Rental> findByVehicleId(String vehicleId) {
+    public Optional<dbRental> findByVehicleId(String vehicleId) {
         return rentals.stream().filter(r -> r.getVehicleId().equals(vehicleId)).findFirst();
     }
 
     @Override
-    public Optional<Rental> findByUserId(String userId) {
+    public Optional<dbRental> findByUserId(String userId) {
         return rentals.stream().filter(r -> r.getUserId().equals(userId)).findFirst();
     }
 
     @Override
-    public Rental save(Rental rental) {
+    public dbRental save(dbRental rental) {
         if (rental.getId() == null || rental.getId().isBlank()) {
             rental.setId(UUID.randomUUID().toString());
         } else {
@@ -57,7 +59,7 @@ public class RentalJsonRepository implements RentalRepository {
     }
 
     @Override
-    public Optional<Rental> findByVehicleIdAndReturnDateIsNull(String vehicleId) {
+    public Optional<dbRental> findByVehicleIdAndReturnDateIsNull(String vehicleId) {
         return rentals.stream()
                 .filter(r -> r.getVehicleId().equals(vehicleId))
                 .filter(r -> r.getReturnDate().isBlank())
@@ -65,7 +67,7 @@ public class RentalJsonRepository implements RentalRepository {
     }
 
     @Override
-    public Optional<Rental> findByUserIdAndReturnDateIsNull(String userId) {
+    public Optional<dbRental> findByUserIdAndReturnDateIsNull(String userId) {
         return rentals.stream()
                 .filter(r -> r.getUserId().equals(userId))
                 .filter(r -> r.getReturnDate().isBlank())

@@ -1,16 +1,15 @@
 package org.example.services;
 
-import org.example.models.Rental;
 import org.example.models.Vehicle;
-import org.example.repositories.RentalRepository;
+import org.example.repositories.DbRentalRepository;
 import org.example.repositories.VehicleRepository;
 
-public class VehicleService {
+public class SimpleVehicleService {
 
     private final VehicleRepository vehicleRepo;
-    private final RentalRepository rentalRepo;
+    private final DbRentalRepository rentalRepo;
 
-    public VehicleService(VehicleRepository vehicleRepo, RentalRepository rentalRepo) {
+    public SimpleVehicleService(VehicleRepository vehicleRepo, DbRentalRepository rentalRepo) {
         this.vehicleRepo = vehicleRepo;
         this.rentalRepo = rentalRepo;
     }

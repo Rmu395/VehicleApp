@@ -59,8 +59,21 @@ public class AuthHibernateService implements AuthService {
         try (Session session = HibernateConfig.getSessionFactory().openSession()) {
             userRepo.setSession(session);
 
-            return userRepo.findByLogin(login)
-                    .filter(user -> BCrypt.checkpw(rawPassword, user.getPassword()));
+            Optional<User> user = userRepo.findByLogin(login);
+
+            if (user.isPresent()) {
+                if (BCrypt.checkpw(rawPassword, user.get().getPassword())) {
+                    return user;
+                }
+                else {
+                    System.out.println("Wrong password");
+                    return Optional.empty();
+                }
+            }
+            else {
+                System.out.println("User not found - possible wrong login");
+                return Optional.empty();
+            }
         }
     }
 }

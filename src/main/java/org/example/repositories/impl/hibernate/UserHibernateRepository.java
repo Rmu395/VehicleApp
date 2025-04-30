@@ -4,6 +4,7 @@ import org.example.models.Rental;
 import org.example.models.User;
 import org.example.repositories.UserRepository;
 import org.hibernate.Session;
+import org.hibernate.query.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,12 +23,18 @@ public class UserHibernateRepository implements UserRepository {
 
     @Override
     public Optional<User> findById(String id) {
-        return Optional.ofNullable(session.get(User.class, id));
+        return Optional.ofNullable(session.get(User.class, id));    // this works only for primary keys
     }
 
     @Override
     public Optional<User> findByLogin(String login) {
-        return Optional.ofNullable(session.get(User.class, login));
+        //return Optional.ofNullable(session.get(User.class, login));
+        Query<User> query = session.createQuery("""
+                FROM User u
+                WHERE u.login = :login
+                """, User.class);
+        query.setParameter("login", login);
+        return query.uniqueResultOptional();
     }
 
     @Override
